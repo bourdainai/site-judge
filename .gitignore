@@ -1,4 +1,5 @@
 node_modules
 findings.json
+test/findings.*
+test/empty-baseline.json
 .DS_Store
-findings.json
