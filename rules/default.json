@@ -56,6 +56,7 @@
     },
     "one_punch": {
       "rule": "one punch per page",
+      "locate": false,
       "question": "Does `copy` pile up several competing headline claims or superlatives (fastest, smartest, all-in-one, revolutionary, the only) instead of making one clear point?",
       "yes": { "definition": "Three or more superlative or sweeping claims compete on the page" },
       "no": { "definition": "One clear point, or plain descriptions" },

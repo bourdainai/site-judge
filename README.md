@@ -41,7 +41,7 @@ Two halves, kept apart because they are different kinds of evidence.
 
 Every question has to earn its place on every run. Each carries **known-bad and known-good examples**; the question is asked those first and must fire on every bad one (≥ 0.7) and stay quiet on every good one (< 0.5). A question that fails its controls is reported **UNTRUSTED**, the run says which example it failed on, and none of its answers can become a finding. So "no findings" means "no findings from questions that were proven to work today", never "the model felt fine".
 
-**The finding names the sentence.** When a window fires, the same question is asked of each sentence in it and the finding carries the one that scored highest, with its probability. That is what turns "something on the pricing page" into *"Trusted by 2,000 brands!" p=0.97* — a line someone can change.
+**The finding names the sentence — when a sentence is the problem.** When a window fires, the same question is asked of each sentence in it; if one clears the threshold on its own, the finding carries that sentence and its probability. That is what turns "something on the pricing page" into *"Trusted by 2,000 brands!" p=0.97* — a line someone can change. If no single sentence clears it, the problem is the paragraph (a pile-up, a register) and the finding keeps the window as its excerpt, marked `scope: window`. Page-level questions like `one_punch` opt out of location entirely.
 
 **Advisory, always.** It exits 0 on findings. It prints them for a person to weigh; it never blocks a merge and it never edits anything. If you want a gate, `--gate code` fails the run on the deterministic half only (code checks and broken links, and only new ones when a baseline is given); judged findings never gate, by design. It exits 1 only when it could not do its job: nothing answered at the origin, the rules file is unusable, a check missed the planted line, or the judgment engine could not be reached.
 
@@ -115,7 +115,7 @@ Copy [`rules/default.json`](rules/default.json) and edit it. It is the whole con
 | --- | --- |
 | `checks` | Regex checks. Each has a `pattern`, optional `flags`, and the `rule` it enforces, in your words. |
 | `planted` | One line every check must fire on. Add a phrase here whenever you add a check; the run refuses to start if any check misses it. |
-| `questions` | Judged questions. `question` is asked over `copy`; `yes`/`no` define the two answers (a definition and examples); `bad`/`good` are the controls, and both are required. A question may set its own `fire`/`clear`. |
+| `questions` | Judged questions. `question` is asked over `copy`; `yes`/`no` define the two answers (a definition and examples); `bad`/`good` are the controls, and both are required. A question may set its own `fire`/`clear`, and `"locate": false` for a question that is about the paragraph, not a sentence (the default `one_punch`). |
 | `windowChars` | How much page text is judged at once (default 1200, roughly a paragraph or two). Smaller windows catch one bad sentence in a page of good ones; larger windows catch page-level problems like "more than one punch". |
 | `skip` | Regex of URLs not to crawl — assets, `mailto:`, and any section you judge elsewhere. |
 | `fire` / `clear` | The thresholds: a finding at or above `fire`, unclear between `clear` and `fire`, quiet below `clear`. |

@@ -65,6 +65,7 @@ const CHECKS = Object.entries(rules.checks ?? {}).map(([id, c]) => ({ id, re: ne
 const QUESTIONS = Object.entries(rules.questions ?? {}).map(([id, q]) => ({
   id, rule: q.rule, bad: q.bad ?? [], good: q.good ?? [],
   fire: q.fire ?? rules.fire ?? 0.7, clear: q.clear ?? rules.clear ?? 0.5, // per-question thresholds win
+  locate: q.locate !== false, // page-level questions (one punch per page) are never located to a sentence
   question: { type: "noul", instructions: q.question, criteria: { true: q.yes, false: q.no } },
 }));
 if (CHECKS.length === 0 && QUESTIONS.length === 0) { console.error("site-judge: the rules file has no checks and no questions"); process.exit(1); }
@@ -200,18 +201,23 @@ if (QUESTIONS.length > 0 && !KEY) {
           const p = Number(answers[q.id].noul.toFixed(2));
           if (p < q.clear) continue;
           // The window fired; find the sentence, so the finding names a line someone can change.
+          // A sentence replaces the window only when it clears the threshold on its own:
+          // otherwise the finding is about the paragraph (a pile-up, a register), and the
+          // window stays as the excerpt with its own probability. Questions that are
+          // page-level by nature set `locate: false` and are never located.
           let excerpt = copy, sentenceP = null;
           const sentences = sentencesOf(copy);
-          if (p >= q.fire && sentences.length > 1) {
+          if (p >= q.fire && q.locate && sentences.length > 1) {
             let best = null;
             for (const s of sentences) {
               const sp = (await ask({ copy: s, seen_on: [page.url] }, { [q.id]: q.question }))[q.id].noul;
               located += 1;
               if (!best || sp > best.p) best = { s, p: sp };
             }
-            if (best) { excerpt = best.s; sentenceP = Number(best.p.toFixed(2)); }
+            if (best && best.p >= q.clear) { excerpt = best.s; sentenceP = Number(best.p.toFixed(2)); }
           }
           push(key, q.id, q.rule, excerpt, { verdict: p >= q.fire ? "FINDING" : "UNCLEAR", trusted: trusted[q.id] === true, p, half: "judged" });
+          findings.at(-1).scope = sentenceP === null ? "window" : "sentence";
           if (sentenceP !== null) findings.at(-1).sentence_p = sentenceP;
         }
       }
