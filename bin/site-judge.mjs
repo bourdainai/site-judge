@@ -36,17 +36,19 @@ import path from "node:path";
 const argv = process.argv.slice(2);
 const flag = (name) => { const i = argv.indexOf(name); return i === -1 ? undefined : argv[i + 1]; };
 const positional = argv.filter((a, i) => !a.startsWith("--") && !argv[i - 1]?.startsWith("--"));
-const ORIGIN = (positional[0] ?? process.env.SITE_ORIGIN ?? "").replace(/\/$/, "");
+// A composite action passes an omitted input as "", so empty means unset here.
+const env = (name) => process.env[name]?.trim() || undefined;
+const ORIGIN = (positional[0] ?? env("SITE_ORIGIN") ?? "").replace(/\/$/, "");
 if (!ORIGIN) { console.error("site-judge: give the origin to judge, e.g. site-judge http://127.0.0.1:8787"); process.exit(1); }
-const RULES_PATH = flag("--rules") ?? process.env.SITE_JUDGE_RULES ?? path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "rules", "default.json");
-const JSON_OUT = flag("--json") ?? process.env.SITE_JUDGE_JSON;
+const RULES_PATH = flag("--rules") ?? env("SITE_JUDGE_RULES") ?? path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "rules", "default.json");
+const JSON_OUT = flag("--json") ?? env("SITE_JUDGE_JSON");
 const KEY = process.env.TYPESAFE_API_KEY?.trim() || null;
 const ENDPOINT = process.env.TYPESAFE_ENDPOINT ?? "https://api.typesafe.ai/v1/systemone";
 
 // ------------------------------------------------------------------ rules
 let rules;
 try { rules = JSON.parse(await readFile(RULES_PATH, "utf8")); } catch (e) { console.error(`site-judge: could not read rules at ${RULES_PATH}: ${e.message}`); process.exit(1); }
-const MAX_PAGES = Number(process.env.SITE_JUDGE_MAX_PAGES ?? rules.maxPages ?? 80);
+const MAX_PAGES = Number(env("SITE_JUDGE_MAX_PAGES") ?? rules.maxPages ?? 80);
 const WINDOW = Number(rules.windowChars ?? 1200);
 const MODEL = rules.model ?? "jev-1.13.0";
 const FIRE = rules.fire ?? 0.7, CLEAR = rules.clear ?? 0.5;
@@ -72,7 +74,7 @@ const blocksOf = (html) => decode(html
   .replace(/<\/(p|h[1-6]|li|blockquote|section|article|header|footer|div|tr|dd|dt|figcaption)>|<br\s*\/?>/gi, "\n")
   .replace(/<[^>]+>/g, " "))
   .split("\n").map((b) => b.replace(/\s+/g, " ").trim()).filter(Boolean);
-const linksOf = (html, base) => [...html.matchAll(/href="([^"#]+)"/g)].map((m) => { try { return new URL(m[1], base).toString(); } catch { return null; } }).filter(Boolean);
+const linksOf = (html, base) => [...html.matchAll(/href=["']([^"'#]+)["']/g)].map((m) => { try { return new URL(m[1], base).toString(); } catch { return null; } }).filter(Boolean);
 
 const pages = new Map();
 const queue = [`${ORIGIN}/`];
@@ -99,11 +101,16 @@ for (const [key, page] of pages) {
   for (const c of CHECKS) { const m = page.text.match(c.re); if (m) push(key, c.id, c.rule, page.text.slice(Math.max(0, m.index - 60), m.index + 80)); }
   for (const l of page.links) allLinks.add(l);
 }
+// Links to pages the crawl already fetched were checked by the crawl (page_not_ok);
+// this pass covers the rest. HEAD first; a server that refuses HEAD gets a GET.
 let checked = 0;
-for (const l of [...allLinks].filter((l) => !skip.test(l)).slice(0, 300)) {
+for (const l of [...allLinks].filter((l) => !skip.test(l) && !pages.has(l.replace(/\/$/, "") || ORIGIN)).slice(0, 300)) {
   checked += 1;
-  try { const r = await fetch(l, { method: "HEAD", redirect: "follow", signal: AbortSignal.timeout(15_000) }); if (r.status >= 400) push(l, "broken_link", "every internal link resolves", `${r.status}`); }
-  catch { push(l, "broken_link", "every internal link resolves", "no answer"); }
+  try {
+    let r = await fetch(l, { method: "HEAD", redirect: "follow", signal: AbortSignal.timeout(15_000) });
+    if (r.status === 405 || r.status === 501) r = await fetch(l, { redirect: "follow", signal: AbortSignal.timeout(15_000) });
+    if (r.status >= 400) push(l, "broken_link", "every internal link resolves", `${r.status}`);
+  } catch { push(l, "broken_link", "every internal link resolves", "no answer"); }
 }
 
 // ------------------------------------------------------------------ judged questions

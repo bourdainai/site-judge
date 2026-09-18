@@ -41,7 +41,8 @@ if (!run.stdout.includes("TYPESAFE_API_KEY is not set")) fail("expected the judg
 const { findings, pages } = JSON.parse(await readFile(out, "utf8"));
 if (pages !== 4) fail(`expected 4 crawled pages (/, /about.html, /bad.html, /missing.html), got ${pages}`);
 const got = new Set(findings.map((f) => `${f.page} ${f.question}`));
-const want = ["/bad.html em_dash", "/bad.html exclamation", "/bad.html social_proof_number", "/bad.html certification", "/missing.html page_not_ok", "/missing.html broken_link"];
+// /missing.html is crawled (it is linked from /), so it reports once, as page_not_ok, not again as broken_link.
+const want = ["/bad.html em_dash", "/bad.html exclamation", "/bad.html social_proof_number", "/bad.html certification", "/missing.html page_not_ok"];
 for (const w of want) if (!got.has(w)) fail(`missing finding: ${w}`);
 for (const g of got) if (!want.includes(g)) fail(`unexpected finding: ${g}`);
 if (findings.some((f) => f.excerpt.includes("9,999"))) fail("script text was read as copy");

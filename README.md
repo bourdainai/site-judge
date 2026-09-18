@@ -13,15 +13,23 @@ site-judge: 4 pages at http://127.0.0.1:62171, 4 links checked, 3 windows judged
   FINDING  social_proof_number        /bad.html      …Trusted by 2,000 brands! Put your support…
   FINDING  certification              /bad.html      …security you can trust, SOC 2 certified.
   FINDING  page_not_ok                /missing.html  status 404
-  FINDING  broken_link                /missing.html  404
   FINDING  autonomy_language          /bad.html      …Put your support on autopilot and never touch a ticket…
   UNCLEAR  replaces_people_or_tools   /bad.html      …
   FINDING  claim_without_evidence     /bad.html      …Trusted by 2,000 brands!…
   UNCLEAR  one_punch                  /bad.html      …
-site-judge: 8 finding(s) to weigh, 2 unclear — advisory, exit 0
+site-judge: 7 finding(s) to weigh, 2 unclear — advisory, exit 0
 ```
 
-The first six are code. The last four are the judgment model, and two of them are UNCLEAR on purpose (see below). The home and about pages, which follow the rules, produced nothing.
+The first five are code. The last four are the judgment model, and two of them are UNCLEAR on purpose (see below). The home and about pages, which follow the rules, produced nothing.
+
+## See it run
+
+```sh
+git clone https://github.com/bourdainai/site-judge && cd site-judge
+node test/run.mjs
+```
+
+That serves the fixture site and runs the code checks against it (no key needed). Add `TYPESAFE_API_KEY` to the environment and run `node bin/site-judge.mjs <origin>` for the judged half.
 
 ## Why
 
@@ -59,7 +67,7 @@ With your own rules and a JSON report:
 npx github:bourdainai/site-judge http://127.0.0.1:8787 --rules copy-rules.json --json findings.json
 ```
 
-Without `TYPESAFE_API_KEY` in the environment the judged half is skipped and says so; the code checks still run. Get a key at [typesafe.ai](https://typesafe.ai). A 40-page site costs a few cents per run.
+Without `TYPESAFE_API_KEY` in the environment the judged half is skipped and says so; the code checks still run. Get a key at [typesafe.ai](https://typesafe.ai). The judged half makes one request per window plus one per control example: on a 39-page site that was 89 windows and 30 controls, about 120 requests a run. Pricing is TypeSafe's to state, not this README's.
 
 ### As a GitHub Action
 
@@ -75,7 +83,7 @@ site-judge:
       run: |
         npx --yes serve dist -l 8787 &
         for _ in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:8787/ && break; sleep 1; done
-    - uses: bourdainai/site-judge@main
+    - uses: bourdainai/site-judge@v0.1.0
       with:
         url: http://127.0.0.1:8787
         typesafe-api-key: ${{ secrets.TYPESAFE_API_KEY }}
