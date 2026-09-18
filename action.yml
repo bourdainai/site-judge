@@ -18,7 +18,7 @@ inputs:
     description: Set to `code` to fail the step when a code check or broken link fires (new ones only, with a baseline). Judged findings never fail the step.
     required: false
   comment:
-    description: Post the findings as a sticky comment on the pull request (needs `pull-requests: write`).
+    description: "Post the findings as a sticky comment on the pull request (needs the pull-requests write permission)."
     required: false
     default: "true"
   github-token:
