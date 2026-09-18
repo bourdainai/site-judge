@@ -1,5 +1,5 @@
 name: site-judge
-description: Reads a served site like a sceptical customer and prints every claim that arrives without its evidence. Advisory — it never fails the job on findings.
+description: Reads a served site like a sceptical customer and prints every claim that arrives without its evidence. Advisory by default; findings go to the job summary and, on a pull request, a sticky comment.
 branding: { icon: eye, color: gray-dark }
 inputs:
   url:
@@ -11,20 +11,70 @@ inputs:
   typesafe-api-key:
     description: TypeSafe API key for the judged half. Leave unset to run the code checks only.
     required: false
-  json:
-    description: Path to write the findings as JSON.
+  baseline:
+    description: Path to a findings JSON from an earlier run (this action's `json` output on your main branch). Findings in it are reported as known, not new.
     required: false
+  gate:
+    description: Set to `code` to fail the step when a code check or broken link fires (new ones only, with a baseline). Judged findings never fail the step.
+    required: false
+  comment:
+    description: "Post the findings as a sticky comment on the pull request (needs the pull-requests write permission)."
+    required: false
+    default: "true"
+  github-token:
+    description: Token used to post the comment.
+    required: false
+    default: ${{ github.token }}
   max-pages:
     description: Crawl at most this many pages.
     required: false
     default: "80"
+outputs:
+  json:
+    description: Path to the findings JSON (use it as next run's baseline).
+    value: ${{ steps.judge.outputs.json }}
+  findings:
+    description: Number of findings to weigh.
+    value: ${{ steps.judge.outputs.findings }}
 runs:
   using: composite
   steps:
-    - shell: bash
+    - id: judge
+      shell: bash
       env:
         TYPESAFE_API_KEY: ${{ inputs.typesafe-api-key }}
         SITE_JUDGE_MAX_PAGES: ${{ inputs.max-pages }}
         SITE_JUDGE_RULES: ${{ inputs.rules }}
-        SITE_JUDGE_JSON: ${{ inputs.json }}
-      run: node "${{ github.action_path }}/bin/site-judge.mjs" "${{ inputs.url }}"
+        SITE_JUDGE_BASELINE: ${{ inputs.baseline }}
+        SITE_JUDGE_GATE: ${{ inputs.gate }}
+      run: |
+        set +e
+        JSON="$RUNNER_TEMP/site-judge.json"; MD="$RUNNER_TEMP/site-judge.md"
+        node "${{ github.action_path }}/bin/site-judge.mjs" "${{ inputs.url }}" --json "$JSON" --markdown "$MD"
+        CODE=$?
+        echo "code=$CODE" >> "$GITHUB_OUTPUT"
+        echo "json=$JSON" >> "$GITHUB_OUTPUT"
+        echo "md=$MD" >> "$GITHUB_OUTPUT"
+        if [ -f "$JSON" ]; then echo "findings=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).findings.filter(f=>f.verdict==="FINDING"&&f.trusted).length)' "$JSON")" >> "$GITHUB_OUTPUT"; fi
+        if [ -f "$MD" ]; then cat "$MD" >> "$GITHUB_STEP_SUMMARY"; fi
+        exit 0
+    - if: ${{ inputs.comment == 'true' && github.event_name == 'pull_request' && steps.judge.outputs.md != '' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR: ${{ github.event.pull_request.number }}
+        MD: ${{ steps.judge.outputs.md }}
+      run: |
+        # One sticky comment per PR, updated on every run, found by its marker.
+        MARK="<!-- site-judge -->"
+        BODY="$MARK"$'\n'"$(cat "$MD")"
+        EXISTING=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate --jq ".[] | select(.body | startswith(\"$MARK\")) | .id" 2>/dev/null | head -1)
+        if [ -n "$EXISTING" ]; then
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$EXISTING" -f body="$BODY" >/dev/null || echo "::warning::site-judge could not update its PR comment (does the job have pull-requests: write?)"
+        else
+          gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="$BODY" >/dev/null || echo "::warning::site-judge could not post its PR comment (does the job have pull-requests: write?)"
+        fi
+    - shell: bash
+      run: |
+        # 1 = could not do its job; 2 = the code gate fired. Findings alone never fail the step.
+        exit ${{ steps.judge.outputs.code }}

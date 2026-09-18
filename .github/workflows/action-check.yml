@@ -1,0 +1,24 @@
+# Runs the action itself against the fixture site, so the composite action
+# (job summary, sticky PR comment, exit code) is proven on every change.
+name: action-check
+on:
+  push: { branches: [main] }
+  pull_request:
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  judge-fixture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Serve the fixture site
+        run: |
+          npx --yes serve test/fixture -l 8787 --no-clipboard &
+          for _ in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:8787/ && break; sleep 1; done
+      - uses: ./
+        with:
+          url: http://127.0.0.1:8787
