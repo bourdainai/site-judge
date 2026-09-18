@@ -1,0 +1,30 @@
+name: site-judge
+description: Reads a served site like a sceptical customer and prints every claim that arrives without its evidence. Advisory — it never fails the job on findings.
+branding: { icon: eye, color: gray-dark }
+inputs:
+  url:
+    description: The origin to judge, already serving (e.g. http://127.0.0.1:8787).
+    required: true
+  rules:
+    description: Path to a rules JSON file. Defaults to the rules shipped with the action.
+    required: false
+  typesafe-api-key:
+    description: TypeSafe API key for the judged half. Leave unset to run the code checks only.
+    required: false
+  json:
+    description: Path to write the findings as JSON.
+    required: false
+  max-pages:
+    description: Crawl at most this many pages.
+    required: false
+    default: "80"
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        TYPESAFE_API_KEY: ${{ inputs.typesafe-api-key }}
+        SITE_JUDGE_MAX_PAGES: ${{ inputs.max-pages }}
+        SITE_JUDGE_RULES: ${{ inputs.rules }}
+        SITE_JUDGE_JSON: ${{ inputs.json }}
+      run: node "${{ github.action_path }}/bin/site-judge.mjs" "${{ inputs.url }}"

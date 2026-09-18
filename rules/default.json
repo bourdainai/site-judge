@@ -1,0 +1,66 @@
+{
+  "$comment": "The default rules. Copy this file, change the wording to your own copy rules, and pass it with --rules. Every question needs known-bad and known-good examples: they are the controls that decide whether the question can be trusted on this run.",
+  "maxPages": 80,
+  "windowChars": 1200,
+  "model": "jev-1.13.0",
+  "fire": 0.7,
+  "clear": 0.5,
+  "skip": "\\.(png|jpe?g|svg|webp|gif|ico|css|js|mjs|json|xml|txt|pdf|woff2?)$|mailto:|tel:|/blog/|/legal/",
+  "planted": "Trusted by 2,000 brands — set it and forget it! SOC 2 certified.",
+  "checks": {
+    "em_dash": { "pattern": "—", "rule": "no em dash in display copy" },
+    "exclamation": { "pattern": "[A-Za-z]![\\s\"')]", "rule": "no exclamation marks" },
+    "social_proof_number": { "pattern": "\\b(trusted|used|loved|chosen)\\s+by\\s+(over\\s+|more than\\s+)?[\\d,]+\\+?\\s*(brands?|merchants?|stores?|teams?|companies|customers|users)", "flags": "i", "rule": "no invented numbers: no 'trusted by N'" },
+    "certification": { "pattern": "(?<!\\b(?:not|no|never|neither)\\s(?:yet\\s)?)\\b(SOC ?2|ISO ?27001|GDPR[- ]certified|PCI[- ]DSS|HIPAA[- ]compliant)\\b(?![^.]*\\b(not|no|coming|planned|launching|in progress)\\b)", "flags": "i", "rule": "no certification badge you do not hold" }
+  },
+  "questions": {
+    "autonomy_language": {
+      "rule": "never sell autonomy",
+      "question": "Does `copy` promise the reader that work will happen without them having to decide or be involved?",
+      "yes": { "definition": "Promises or praises the absence of the person: the work runs by itself, they need not look, approve or think about it, or the product decides in their place", "examples": ["runs on autopilot", "set and forget", "no humans needed", "so you don't have to", "never touch a ticket again"] },
+      "no": { "definition": "Keeps a person deciding, or promises nothing about involvement. A record of who or what carried out a past step is a record, not a promise", "examples": ["It drafts the reply. You approve it.", "Sync completed by scheduler at 02:00 UTC"] },
+      "bad": ["Put your support on autopilot and never touch a ticket again.", "It runs your store so you don't have to.", "Set it once and forget it: replies go out without you lifting a finger."],
+      "good": ["It drafts the reply. You approve it. We send it and keep the record.", "Approve or reject each change before it reaches your store.", "Sync completed by scheduler at 02:00 UTC"]
+    },
+    "ai_theatre": {
+      "rule": "no AI theatre: no hype about the AI, no excited-company register, no explaining the model",
+      "question": "Does `copy` use hype about AI or excitement in place of a plain statement?",
+      "yes": { "definition": "Hype adjectives about intelligence or power, an excited-company register, or an explanation of the AI technology", "examples": ["AI-powered", "supercharge", "revolutionary", "We're thrilled", "uses advanced language models"] },
+      "no": { "definition": "Plain statement of what happens, what was produced or what to do" },
+      "bad": ["Supercharge your store with next-generation AI magic.", "We're thrilled to unleash our advanced language models on your inbox!"],
+      "good": ["Connect your store to start.", "Found 3 orders that match. Open the evidence."]
+    },
+    "replaces_people_or_tools": {
+      "rule": "the product is not an employee and does not replace the reader's tools",
+      "question": "Does `copy` call the product an AI employee or team, or say it replaces a person or the reader's existing tools?",
+      "yes": { "definition": "Calls the product an AI employee, an AI team, a replacement for staff, or says it replaces the reader's store platform, helpdesk, email or ad tools", "examples": ["Your AI employee", "Replace your helpdesk", "Fire your support team"] },
+      "no": { "definition": "Does none of that. Naming a tool the product works with is fine" },
+      "bad": ["Meet your new AI employee for Shopify.", "Cancel your helpdesk. We replace it."],
+      "good": ["Works across your store, helpdesk and email platform. They stay the systems of record.", "Save changes"]
+    },
+    "reassurance_without_mechanism": {
+      "rule": "no reassurance without the mechanism",
+      "question": "Does `copy` reassure the reader about safety, security or trust without naming the mechanism?",
+      "yes": { "definition": "Says safe, secure, trusted, enterprise-grade or similar and stops there", "examples": ["Your data is safe with us", "Enterprise-grade security"] },
+      "no": { "definition": "Offers no such reassurance, or names the gate: who approves, what is logged, how it is undone, what is encrypted", "examples": ["Every change needs your approval and can be undone from the log."] },
+      "bad": ["Bank-level, enterprise-grade security you can trust."],
+      "good": ["Every change needs your approval and can be undone from the log.", "Save changes"]
+    },
+    "claim_without_evidence": {
+      "rule": "every claim carries its evidence, or it goes",
+      "question": "Does `copy` claim proof — named customers, a count of customers or brands, results achieved, a certification held, a guarantee — without the evidence for it appearing in `copy` itself?",
+      "yes": { "definition": "A social-proof or results claim with no evidence beside it", "examples": ["Trusted by 2,000 brands", "Customers save 12 hours a week", "SOC 2 certified"] },
+      "no": { "definition": "Describes what the product does or will do, names a mechanism, or carries its evidence", "examples": ["Every change is approved by a person and recorded with a receipt", "It drafts the reply; you approve it"] },
+      "bad": ["Trusted by 2,000 brands across three continents.", "Our customers grow revenue 30% in the first quarter.", "SOC 2 Type II certified and GDPR compliant."],
+      "good": ["Every change it proposes waits for your approval and ends with a receipt.", "Connect your store in one click; nothing is written to it without you.", "We are building this now; here is what works today and what is next."]
+    },
+    "one_punch": {
+      "rule": "one punch per page",
+      "question": "Does `copy` pile up several competing headline claims or superlatives (fastest, smartest, all-in-one, revolutionary, the only) instead of making one clear point?",
+      "yes": { "definition": "Three or more superlative or sweeping claims compete on the page" },
+      "no": { "definition": "One clear point, or plain descriptions" },
+      "bad": ["The fastest, smartest, most complete all-in-one AI platform — revolutionary automation, unmatched insight, the only tool you'll ever need."],
+      "good": ["It does the work. You sign off. It keeps the receipt."]
+    }
+  }
+}

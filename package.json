@@ -1,0 +1,13 @@
+{
+  "name": "site-judge",
+  "version": "0.1.0",
+  "description": "A CI check that reads your marketing site like a sceptical customer and flags every claim that arrives without its evidence.",
+  "type": "module",
+  "bin": { "site-judge": "bin/site-judge.mjs" },
+  "files": ["bin", "rules", "action.yml"],
+  "scripts": { "test": "node test/run.mjs" },
+  "engines": { "node": ">=20" },
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/bourdainai/site-judge" },
+  "keywords": ["marketing", "copy", "ci", "claims", "typesafe", "jev", "github-action"]
+}
